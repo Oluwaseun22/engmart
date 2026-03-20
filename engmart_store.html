@@ -296,14 +296,12 @@
   }
 </style>
 <!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<!-- EmailJS -->
-<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-<!-- Firebase Auth -->
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 </head>
 <body>
 
@@ -410,6 +408,18 @@
 </div>
 
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyD9e3swun1CnyJtBbpbVmY5HWxVhFsBHNw",
+  authDomain: "engmart-f5fc4.firebaseapp.com",
+  projectId: "engmart-f5fc4",
+  storageBucket: "engmart-f5fc4.firebasestorage.app",
+  messagingSenderId: "394910887689",
+  appId: "1:394910887689:web:f0da37d8f1accdbe6e6dd8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+emailjs.init("h9DTKv23rvZ4o8QlE");
+
 const ADMIN_EMAIL = "seguntoriola25@gmail.com";
 const _auth = firebase.auth();
 
@@ -466,17 +476,6 @@ function loadMyOrders() {
     .catch(e => console.error('Orders load error:', e));
 }
 
-const firebaseConfig = {
-  apiKey: "AIzaSyD9e3swun1CnyJtBbpbVmY5HWxVhFsBHNw",
-  authDomain: "engmart-f5fc4.firebaseapp.com",
-  projectId: "engmart-f5fc4",
-  storageBucket: "engmart-f5fc4.firebasestorage.app",
-  messagingSenderId: "394910887689",
-  appId: "1:394910887689:web:f0da37d8f1accdbe6e6dd8"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-emailjs.init("h9DTKv23rvZ4o8QlE");
 
 const PRODUCT_IMAGES = {
   "1":"https://engmart-assets.s3.eu-west-2.amazonaws.com/images/product_1_asli_golden_sella_basmati_rice.jpg",
@@ -837,7 +836,17 @@ function submitOrder() {
   const notes = document.getElementById('custNotes').value.trim();
   if (!name || !phone || !address) { alert('Please fill in your name, phone and address.'); return; }
   const orderId = 'ORD-' + Date.now();
-  const totalWeight = cart.reduce((s,i) => s + (parseFloat(i.weight)||0.5) * i.qty, 0);
+  function parseWeightKg(w) {
+    if (!w) return 0.5;
+    const s = String(w).toLowerCase().trim();
+    const val = parseFloat(s);
+    if (isNaN(val)) return 0.5;
+    if (s.endsWith('ml') || s.endsWith('l')) return val / 1000; // treat ml/L as g/kg approx
+    if (s.endsWith('g') && !s.endsWith('kg')) return val / 1000;
+    if (s.endsWith('kg')) return val;
+    return val; // assume kg if no unit
+  }
+  const totalWeight = cart.reduce((s,i) => s + parseWeightKg(i.weight) * i.qty, 0);
   const deliveryFee = parseFloat((totalWeight * 2).toFixed(2));
   const subtotal = cart.reduce((s,i) => s + i.price * i.qty, 0);
   const total = parseFloat((subtotal + deliveryFee).toFixed(2));

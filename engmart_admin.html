@@ -150,7 +150,11 @@ tr:hover td{background:#fafafa;}
     <div class="ni" onclick="showPage('inventory',this)"><span>📋</span> Inventory</div>
     <div class="ni" onclick="showPage('analytics',this)"><span>📈</span> Analytics</div>
   </nav>
-  <div class="sf">ENGMart v1.0 © 2025</div>
+  <div class="sf">
+    <div id="adminUserName" style="font-size:.75rem;opacity:.7;margin-bottom:.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+    <button onclick="doAdminLogout()" style="width:100%;background:#c0392b;color:#fff;border:none;border-radius:6px;padding:.5rem;cursor:pointer;font-size:.85rem;font-weight:600;margin-bottom:.6rem">🚪 Logout</button>
+    ENGMart v1.0 © 2025
+  </div>
 </div>
 <div class="main">
   <div class="topbar">
