@@ -476,13 +476,7 @@ const P=[
   {id:99,name:"Vicks Blue Throat Lozenges",brand:"Vicks",weight:"72g",price:1.99,category:"Health & Wellness",stock:40},
   {id:100,name:"KTC Pure Groundnut Oil 2L",brand:"KTC",weight:"2L",price:5.99,category:"Oils",stock:60},
 ];
-let orders=[
-  {id:"ORD-001",customer:"Amara Osei",phone:"07712345678",address:"14 Caledonian Road, Glasgow G5 0JH",items:[{name:"Tilda Easy Cook Rice 10kg",qty:1,price:18.99},{name:"Maggi Star Cubes",qty:2,price:3.99}],total:26.97,status:"Delivered",date:"2025-03-01",notes:""},
-  {id:"ORD-002",customer:"Fatima Hassan",phone:"07823456789",address:"22 Kirk Road, Wishaw ML2 7BL",items:[{name:"Nestle Nido 900g",qty:1,price:11.00},{name:"Cadbury Bournvita 900g",qty:1,price:9.99}],total:20.99,status:"Dispatched",date:"2025-03-03",notes:"Leave at door"},
-  {id:"ORD-003",customer:"Kwame Mensah",phone:"07934567890",address:"5 Springburn Way, Glasgow G21 1TR",items:[{name:"Asli Basmati Rice 10kg",qty:2,price:16.99},{name:"Ghana Best Shito Sauce",qty:1,price:3.49}],total:37.47,status:"Pending",date:"2025-03-05",notes:""},
-  {id:"ORD-004",customer:"Blessing Adeyemi",phone:"07645678901",address:"8 Elderpark Street, Glasgow G51 3RT",items:[{name:"Ayoola Poundo Yam 1.8kg",qty:2,price:6.99},{name:"Knorr Chicken Powder 400g",qty:1,price:4.49}],total:18.47,status:"Pending",date:"2025-03-06",notes:""},
-  {id:"ORD-005",customer:"Zinhle Dlamini",phone:"07456789012",address:"31 Motherwell Road, Hamilton ML3 6AB",items:[{name:"Mazoe Cream Soda 2L",qty:3,price:4.49},{name:"Nutribom Maize Cereal",qty:1,price:4.50}],total:17.97,status:"Delivered",date:"2025-02-28",notes:""},
-];
+let orders=[];
 let eid=null;
 function showPage(id,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -577,9 +571,24 @@ function renderPT(){
   document.getElementById('pT').innerHTML=f.map(p=>`<tr><td>${p.id}</td><td style="display:flex;align-items:center;gap:.5rem">${PRODUCT_IMAGES[p.id]?`<img src="${PRODUCT_IMAGES[p.id]}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0">`:'<span style="width:36px;height:36px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">📦</span>'}<b>${p.name}</b></td><td>${p.brand}</td><td>${p.category}</td><td>${p.weight}</td><td><b>£${p.price.toFixed(2)}</b></td><td><span style="color:${p.stock<10?'var(--red)':p.stock<20?'var(--gold)':'var(--green)'};font-weight:600">${p.stock}</span></td><td style="display:flex;gap:.5rem"><button class="btn bgo bs" onclick="editP(${p.id})">Edit</button><button class="btn br bs" onclick="delP(${p.id})">Del</button></td></tr>`).join('');
 }
 function openPM(id=null){
-  eid=id;document.getElementById('pMT').textContent=id?'Edit Product':'Add Product';
-  if(id){const p=P.find(p=>p.id===id);document.getElementById('pN').value=p.name;document.getElementById('pBr').value=p.brand;document.getElementById('pC').value=p.category;document.getElementById('pW').value=p.weight;document.getElementById('pPr').value=p.price;document.getElementById('pSt').value=p.stock;}
-  else{['pN','pBr','pW','pPr','pSt'].forEach(i=>document.getElementById(i).value='');}
+  eid=id;
+  document.getElementById('pMT').textContent=id?'Edit Product':'Add Product';
+  document.getElementById('pImg').value='';
+  const preview=document.getElementById('pImgPreview');
+  if(id){
+    const p=P.find(p=>p.id===id);
+    document.getElementById('pN').value=p.name;
+    document.getElementById('pBr').value=p.brand;
+    document.getElementById('pC').value=p.category;
+    document.getElementById('pW').value=p.weight;
+    document.getElementById('pPr').value=p.price;
+    document.getElementById('pSt').value=p.stock;
+    const img=p.image||PRODUCT_IMAGES[id]||'';
+    preview.innerHTML=img?`<img src='${img}' style='width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:.3rem'><p style='font-size:.75rem;color:#888;margin-top:.3rem'>Current image — upload new to replace</p>`:'<p style="font-size:.75rem;color:#888">No image yet</p>';
+  } else {
+    ['pN','pBr','pW','pPr','pSt'].forEach(i=>document.getElementById(i).value='');
+    preview.innerHTML='';
+  }
   document.getElementById('pModal').classList.add('open');
 }
 function editP(id){openPM(id);}
