@@ -249,7 +249,17 @@ tr:hover td{background:#fafafa;}
     </div>
     <div class="fr">
       <div class="fg"><label>Category</label>
-        <select id="pC"><option>Rice</option><option>Flours & Grains</option><option>Spices & Seasonings</option><option>Canned Goods</option><option>Sauces & Condiments</option><option>Dried Fish & Seafood</option><option>Drinks</option><option>Breakfast & Cereals</option><option>Baby & Infant Food</option><option>Snacks</option><option>Herbs & Leaves</option><option>Health & Wellness</option><option>Oils</option></select>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <select id="pC" style="flex:1"></select>
+          <button type="button" onclick="addNewCategory()" style="background:#2d7a2d;color:#fff;border:none;border-radius:6px;padding:.45rem .8rem;cursor:pointer;font-size:.85rem;white-space:nowrap">+ New</button>
+        </div>
+        <div id="newCatRow" style="display:none;margin-top:.4rem;display:none">
+          <input type="text" id="newCatInput" placeholder="New category name" style="width:100%;padding:.5rem;border:1.5px solid #2d7a2d;border-radius:6px;font-size:.9rem">
+          <div style="display:flex;gap:.4rem;margin-top:.3rem">
+            <button type="button" onclick="confirmNewCategory()" style="background:#2d7a2d;color:#fff;border:none;border-radius:6px;padding:.35rem .8rem;cursor:pointer;font-size:.85rem">Add</button>
+            <button type="button" onclick="cancelNewCategory()" style="background:#eee;border:none;border-radius:6px;padding:.35rem .8rem;cursor:pointer;font-size:.85rem">Cancel</button>
+          </div>
+        </div>
       </div>
       <div class="fg"><label>Weight</label><input type="text" id="pW" placeholder="e.g. 1kg"></div>
     </div>
@@ -572,16 +582,62 @@ function renderPT(){
   const f=P.filter(p=>(!q||p.name.toLowerCase().includes(q)||p.brand.toLowerCase().includes(q))&&(!cf||p.category===cf));
   document.getElementById('pT').innerHTML=f.map(p=>`<tr><td>${p.id}</td><td style="display:flex;align-items:center;gap:.5rem">${PRODUCT_IMAGES[p.id]?`<img src="${PRODUCT_IMAGES[p.id]}" style="width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0">`:'<span style="width:36px;height:36px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:1.2rem">📦</span>'}<b>${p.name}</b></td><td>${p.brand}</td><td>${p.category}</td><td>${p.weight}</td><td><b>£${p.price.toFixed(2)}</b></td><td><span style="color:${p.stock<10?'var(--red)':p.stock<20?'var(--gold)':'var(--green)'};font-weight:600">${p.stock}</span></td><td style="display:flex;gap:.5rem"><button class="btn bgo bs" onclick="editP(${p.id})">Edit</button><button class="btn br bs" onclick="delP(${p.id})">Del</button></td></tr>`).join('');
 }
+
+// Default categories
+const DEFAULT_CATS = ['Rice','Flours & Grains','Spices & Seasonings','Canned Goods','Sauces & Condiments','Dried Fish & Seafood','Drinks','Breakfast & Cereals','Baby & Infant Food','Snacks','Herbs & Leaves','Health & Wellness','Oils'];
+
+function getCategories() {
+  const fromP = [...new Set(P.map(p => p.category).filter(Boolean))];
+  const all = [...new Set([...DEFAULT_CATS, ...fromP])].sort();
+  return all;
+}
+
+function populateCategoryDropdown(selected='') {
+  const sel = document.getElementById('pC');
+  if (!sel) return;
+  const cats = getCategories();
+  sel.innerHTML = cats.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+
+function addNewCategory() {
+  const row = document.getElementById('newCatRow');
+  row.style.display = 'block';
+  document.getElementById('newCatInput').focus();
+}
+
+function confirmNewCategory() {
+  const input = document.getElementById('newCatInput');
+  const name = input.value.trim();
+  if (!name) { alert('Enter a category name.'); return; }
+  // Add to dropdown
+  const sel = document.getElementById('pC');
+  const exists = Array.from(sel.options).some(o => o.value.toLowerCase() === name.toLowerCase());
+  if (!exists) {
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  }
+  sel.value = name;
+  cancelNewCategory();
+}
+
+function cancelNewCategory() {
+  document.getElementById('newCatRow').style.display = 'none';
+  document.getElementById('newCatInput').value = '';
+}
+
 function openPM(id=null){
   eid=id;
   document.getElementById('pMT').textContent=id?'Edit Product':'Add Product';
   document.getElementById('pImg').value='';
+  cancelNewCategory();
   const preview=document.getElementById('pImgPreview');
   if(id){
     const p=P.find(p=>p.id===id);
     document.getElementById('pN').value=p.name;
     document.getElementById('pBr').value=p.brand;
-    document.getElementById('pC').value=p.category;
+    populateCategoryDropdown(p.category);
     document.getElementById('pW').value=p.weight;
     document.getElementById('pPr').value=p.price;
     document.getElementById('pSt').value=p.stock;
@@ -589,6 +645,7 @@ function openPM(id=null){
     preview.innerHTML=img?`<img src='${img}' style='width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:.3rem'><p style='font-size:.75rem;color:#888;margin-top:.3rem'>Current image — upload new to replace</p>`:'<p style="font-size:.75rem;color:#888">No image yet</p>';
   } else {
     ['pN','pBr','pW','pPr','pSt'].forEach(i=>document.getElementById(i).value='');
+    populateCategoryDropdown();
     preview.innerHTML='';
   }
   document.getElementById('pModal').classList.add('open');
