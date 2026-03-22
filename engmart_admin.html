@@ -182,7 +182,7 @@ tr:hover td{background:#fafafa;}
     <div class="sg">
       <div class="sc gold"><div class="sl2">Total Revenue</div><div class="sv" id="sRev">£0</div><div class="ss">All time</div></div>
       <div class="sc"><div class="sl2">Total Orders</div><div class="sv" id="sOrd">0</div><div class="ss">All time</div></div>
-      <div class="sc blue"><div class="sl2">Products</div><div class="sv">100</div><div class="ss">In catalogue</div></div>
+      <div class="sc blue"><div class="sl2">Products</div><div class="sv" id="sProd">100</div><div class="ss">In catalogue</div></div>
       <div class="sc red"><div class="sl2">Low Stock</div><div class="sv" id="sLow">0</div><div class="ss">Below 10 units</div></div>
     </div>
     <div class="sh"><h2>Recent Orders</h2><button class="btn bo" onclick="showPage('orders',document.querySelectorAll('.ni')[1])">View All</button></div>
@@ -489,6 +489,8 @@ function showPage(id,el){
   if(id==='dashboard')renderDB();
 }
 function renderDB(){
+  const prodEl=document.getElementById("sProd");
+  if(prodEl)prodEl.textContent=P.length;
   const rev=orders.filter(o=>o.status==='Delivered').reduce((s,o)=>s+o.total,0);
   const low=P.filter(p=>p.stock<10).length;
   document.getElementById('sRev').textContent='£'+rev.toFixed(2);
