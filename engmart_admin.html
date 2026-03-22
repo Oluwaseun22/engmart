@@ -257,6 +257,11 @@ tr:hover td{background:#fafafa;}
       <div class="fg"><label>Price (£) *</label><input type="number" id="pPr" step="0.01" placeholder="0.00"></div>
       <div class="fg"><label>Stock</label><input type="number" id="pSt" placeholder="100"></div>
     </div>
+    <div class="fg">
+      <label>Product Image</label>
+      <input type="file" id="pImg" accept="image/*" onchange="previewImg(this)">
+      <div id="pImgPreview" style="margin-top:.5rem"></div>
+    </div>
     <div class="ma">
       <button class="btn bg" onclick="saveP()">Save Product</button>
       <button class="btn bo" onclick="closePM()">Cancel</button>
@@ -485,7 +490,7 @@ function showPage(id,el){
   document.getElementById('page-'+id).classList.add('active');el.classList.add('active');
   const t={dashboard:'Overview',orders:'Orders',products:'Product Catalogue',inventory:'Inventory',analytics:'Analytics'};
   document.getElementById('ttitle').textContent=t[id];
-  if(id==='orders')renderOrders();if(id==='products')renderPT();
+  if(id==='orders')renderOrders();if(id==='products'){loadProductsFromFirestore();renderPT();}
   if(id==='inventory')loadStock();if(id==='analytics')renderAna();
   if(id==='dashboard')renderDB();
 }
@@ -541,6 +546,27 @@ function showOD(id){
   <div style="text-align:right;font-size:1.1rem;font-weight:700;color:#1a6b3c">Total: £${o.total.toFixed(2)}</div><div style="margin-top:1rem">Status: <span class="bs2 b${o.status.toLowerCase().replace('dispatched','d').replace('delivered','dl').replace('pending','p').replace('cancelled','c')}">${o.status}</span></div>`;
   document.getElementById('odModal').classList.add('open');
 }
+
+function loadProductsFromFirestore() {
+  if(!window.db) return;
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({collection,getDocs})=>{
+    getDocs(collection(window.db,"products")).then(snap=>{
+      if(snap.empty) return; // use hardcoded P if no Firestore products
+      snap.forEach(d=>{
+        const data = d.data();
+        const existing = P.find(p=>p.id===data.id);
+        if(existing) {
+          Object.assign(existing, data);
+        } else {
+          P.push(data);
+        }
+        if(data.image) PRODUCT_IMAGES[data.id] = data.image;
+      });
+      renderPT();
+    }).catch(e=>console.warn('Products load error:',e));
+  });
+}
+
 function renderPT(){
   const q=(document.getElementById('pSrch')?.value||'').toLowerCase();
   const cf=document.getElementById('pCat')?.value||'';
@@ -557,16 +583,66 @@ function openPM(id=null){
   document.getElementById('pModal').classList.add('open');
 }
 function editP(id){openPM(id);}
-function saveP(){
-  const n=document.getElementById('pN').value.trim();const b=document.getElementById('pBr').value.trim();
-  const c=document.getElementById('pC').value;const w=document.getElementById('pW').value.trim();
-  const pr=parseFloat(document.getElementById('pPr').value);const st=parseInt(document.getElementById('pSt').value)||100;
-  if(!n||!b||!pr){alert('Fill name, brand and price.');return;}
-  if(eid){const p=P.find(p=>p.id===eid);Object.assign(p,{name:n,brand:b,category:c,weight:w,price:pr,stock:st});}
-  else{P.push({id:P.length+1,name:n,brand:b,category:c,weight:w,price:pr,stock:st});}
-  closePM();renderPT();
+function previewImg(input) {
+  const preview = document.getElementById('pImgPreview');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.innerHTML = `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;margin-top:.3rem">`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
 }
-function delP(id){if(confirm('Delete?')){const i=P.findIndex(p=>p.id===id);if(i>-1)P.splice(i,1);renderPT();}}
+
+function saveP(){
+  const n=document.getElementById('pN').value.trim();
+  const b=document.getElementById('pBr').value.trim();
+  const c=document.getElementById('pC').value;
+  const w=document.getElementById('pW').value.trim();
+  const pr=parseFloat(document.getElementById('pPr').value);
+  const st=parseInt(document.getElementById('pSt').value)||100;
+  if(!n||!b||!pr){alert('Fill name, brand and price.');return;}
+
+  const imgInput = document.getElementById('pImg');
+  const file = imgInput.files && imgInput.files[0];
+
+  function persist(imgData) {
+    const productData = {name:n, brand:b, category:c, weight:w, price:pr, stock:st, image: imgData || ''};
+    if(eid) {
+      const p=P.find(p=>p.id===eid);
+      Object.assign(p, productData);
+      if(imgData) PRODUCT_IMAGES[eid] = imgData;
+      // Save to Firestore
+      if(window.db) {
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({doc,setDoc})=>{
+          setDoc(doc(window.db,"products",String(eid)), {...productData, id:eid});
+        });
+        saveStock(eid, st);
+      }
+    } else {
+      const newId = Math.max(...P.map(p=>p.id)) + 1;
+      P.push({id:newId, ...productData});
+      if(imgData) PRODUCT_IMAGES[newId] = imgData;
+      // Save to Firestore
+      if(window.db) {
+        import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({doc,setDoc})=>{
+          setDoc(doc(window.db,"products",String(newId)), {...productData, id:newId});
+        });
+        saveStock(newId, st);
+      }
+    }
+    closePM();renderPT();
+  }
+
+  if(file) {
+    const reader = new FileReader();
+    reader.onload = e => persist(e.target.result);
+    reader.readAsDataURL(file);
+  } else {
+    persist(eid ? (PRODUCT_IMAGES[eid]||'') : '');
+  }
+}
+function delP(id){if(confirm('Delete this product? This cannot be undone.')){const i=P.findIndex(p=>p.id===id);if(i>-1)P.splice(i,1);delete PRODUCT_IMAGES[id];if(window.db){import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(({doc,deleteDoc})=>{deleteDoc(doc(window.db,'products',String(id)));});}renderPT();}}
 function closePM(){document.getElementById('pModal').classList.remove('open');}
 function saveStock(productId,stockVal){
   if(typeof window.db==="undefined")return;
