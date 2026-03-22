@@ -752,7 +752,7 @@ function renderProducts(list = PRODUCTS) {
           <div class="product-weight">${p.weight}</div>
           <div class="product-footer">
             <span class="product-price">£${p.price.toFixed(2)}</span>
-            <button class="add-btn ${inCart ? 'added' : ''}" onclick="addToCart(${p.id})" title="Add to cart">
+            <button class="add-btn ${inCart ? 'added' : ''}" onclick="addToCart(${p.id})" title="Add to cart" id="addbtn_${p.id}">
               ${inCart ? '✓' : '+'}
             </button>
           </div>
@@ -760,6 +760,24 @@ function renderProducts(list = PRODUCTS) {
       </div>
     `;
   });
+  loadStockLevels();
+}
+
+
+function loadStockLevels() {
+  if (typeof db === 'undefined') return;
+  db.collection('inventory').get().then(snap => {
+    snap.forEach(doc => {
+      const stock = doc.data().stock;
+      const btn = document.getElementById('addbtn_' + doc.id);
+      if (btn && stock !== undefined && stock <= 0) {
+        btn.disabled = true;
+        btn.textContent = 'Out of Stock';
+        btn.style.background = '#ccc';
+        btn.style.cursor = 'not-allowed';
+      }
+    });
+  }).catch(e => console.warn('Stock load error:', e));
 }
 
 function addToCart(id) {
@@ -864,6 +882,23 @@ function submitOrder() {
     status: 'Pending',
     date: new Date().toISOString().split('T')[0]
   };
+  // Check stock levels before placing order
+  const stockChecks = cart.map(item =>
+    db.collection('inventory').doc(String(item.id)).get().then(doc => ({
+      name: item.name,
+      requested: item.qty,
+      available: doc.exists ? (doc.data().stock !== undefined ? doc.data().stock : 999) : 999
+    }))
+  );
+
+  Promise.all(stockChecks).then(levels => {
+    const outOfStock = levels.filter(l => l.available < l.requested);
+    if (outOfStock.length > 0) {
+      const msg = outOfStock.map(l => `${l.name} (only ${l.available} left)`).join('\n');
+      alert('Sorry, the following items have insufficient stock:\n\n' + msg + '\n\nPlease update your cart.');
+      return;
+    }
+
   db.collection('orders').doc(orderId).set(orderData)
     .then(() => {
       emailjs.send("service_3ev82bf", "template_nttenwe", {
@@ -884,6 +919,7 @@ function submitOrder() {
       ['custName','custPhone','custAddress','custNotes'].forEach(id => document.getElementById(id).value = '');
     })
     .catch(e => { console.error("Order save error:", e); alert("Failed to place order. Please try again."); });
+  }).catch(e => { console.error("Stock check error:", e); alert("Failed to verify stock. Please try again."); });
 }
 
 function closeSuccess() {
