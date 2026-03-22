@@ -105,6 +105,7 @@ tr:hover td{background:#fafafa;}
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  window.db = db;
   const auth = getAuth(app);
   const ADMIN_EMAIL = "seguntoriola25@gmail.com";
 
@@ -567,8 +568,25 @@ function saveP(){
 }
 function delP(id){if(confirm('Delete?')){const i=P.findIndex(p=>p.id===id);if(i>-1)P.splice(i,1);renderPT();}}
 function closePM(){document.getElementById('pModal').classList.remove('open');}
-function saveStock(productId,stockVal){if(typeof db==="undefined")return;db.collection("inventory").doc(String(productId)).set({stock:stockVal}).catch(e=>console.error("Stock save error:",e));}
-function loadStock(){if(typeof db==="undefined"){renderInv();return;}db.collection("inventory").get().then(snap=>{snap.forEach(doc=>{const p=P.find(p=>p.id===parseInt(doc.id));if(p&&doc.data().stock!==undefined)p.stock=doc.data().stock;});renderInv();}).catch(e=>{console.error("Stock load error:",e);renderInv();});}
+function saveStock(productId,stockVal){
+  if(typeof window.db==="undefined")return;
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({doc,setDoc})=>{
+    setDoc(doc(window.db,"inventory",String(productId)),{stock:stockVal})
+    .catch(e=>console.error("Stock save error:",e));
+  });
+}
+function loadStock(){
+  if(typeof window.db==="undefined"){renderInv();return;}
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({collection,getDocs})=>{
+    getDocs(collection(window.db,"inventory")).then(snap=>{
+      snap.forEach(d=>{
+        const p=P.find(p=>p.id===parseInt(d.id));
+        if(p&&d.data().stock!==undefined)p.stock=d.data().stock;
+      });
+      renderInv();
+    }).catch(e=>{console.error("Stock load error:",e);renderInv();});
+  });
+}
 function renderInv(){
   const q=(document.getElementById('iSrch')?.value||'').toLowerCase();
   const f2=document.getElementById('iF')?.value||'';

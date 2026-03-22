@@ -772,9 +772,21 @@ function loadStockLevels() {
       const btn = document.getElementById('addbtn_' + doc.id);
       if (btn && stock !== undefined && stock <= 0) {
         btn.disabled = true;
-        btn.textContent = 'Out of Stock';
+        btn.textContent = '✕';
+        btn.title = 'Out of Stock';
         btn.style.background = '#ccc';
         btn.style.cursor = 'not-allowed';
+        btn.style.opacity = '0.6';
+        // Add out of stock label to the card
+        const card = btn.closest('.product-card');
+        if (card && !card.querySelector('.oos-label')) {
+          const label = document.createElement('div');
+          label.className = 'oos-label';
+          label.textContent = 'Out of Stock';
+          label.style.cssText = 'position:absolute;top:8px;left:8px;background:#c0392b;color:#fff;font-size:.7rem;font-weight:700;padding:.2rem .5rem;border-radius:4px;z-index:2;';
+          card.style.position = 'relative';
+          card.appendChild(label);
+        }
       }
     });
   }).catch(e => console.warn('Stock load error:', e));
